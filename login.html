@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MoodObserver — Sign In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #07080f;
+  --surface: rgba(255,255,255,0.04);
+  --surface2: rgba(255,255,255,0.07);
+  --border: rgba(255,255,255,0.08);
+  --border-bright: rgba(255,255,255,0.18);
+  --text: #eceef8;
+  --muted: #5a5f7a;
+  --accent: #7c6af7;
+  --accent2: #5ce6b5;
+  --accent3: #f7a8d4;
+  --glow: rgba(124,106,247,0.35);
+}
+
+html, body {
+  height: 100%;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+}
+
+/* ====== 3D SCENE ====== */
+.scene {
+  position: fixed;
+  inset: 0;
+  perspective: 1200px;
+  perspective-origin: 50% 45%;
+  overflow: hidden;
+}
+
+/* Animated grid floor */
+.grid-floor {
+  position: absolute;
+  bottom: -20px;
+  left: 50%;
+  transform: translateX(-50%) rotateX(75deg);
+  width: 2000px;
+  height: 1200px;
+  background-image:
+    linear-gradient(rgba(124,106,247,0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124,106,247,0.12) 1px, transparent 1px);
+  background-size: 60px 60px;
+  transform-origin: bottom center;
+  animation: gridMove 6s linear infinite;
+}
+
+@keyframes gridMove {
+  from { background-position: 0 0; }
+  to   { background-position: 0 60px; }
+}
+
+/* Floating orbs */
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0;
+  animation: orbFloat 8s ease-in-out infinite;
+}
+.orb1 { width: 500px; height: 500px; top: -100px; left: -120px; background: radial-gradient(circle, #7c6af7, transparent 70%); animation-delay: 0s; }
+.orb2 { width: 400px; height: 400px; bottom: -80px; right: -100px; background: radial-gradient(circle, #5ce6b5, transparent 70%); animation-delay: -3s; }
+.orb3 { width: 300px; height: 300px; top: 30%; left: 60%; background: radial-gradient(circle, #f7a8d4, transparent 70%); animation-delay: -5s; }
+
+@keyframes orbFloat {
+  0%   { opacity: 0.18; transform: translateY(0px) scale(1); }
+  50%  { opacity: 0.28; transform: translateY(-30px) scale(1.05); }
+  100% { opacity: 0.18; transform: translateY(0px) scale(1); }
+}
+
+/* 3D floating crystals */
+.crystal-wrap {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.crystal {
+  position: absolute;
+  animation: crystalFloat linear infinite;
+}
+
+@keyframes crystalFloat {
+  0%   { transform: translateY(0) rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+  25%  { transform: translateY(-20px) rotateX(90deg) rotateY(45deg) rotateZ(15deg); }
+  50%  { transform: translateY(-10px) rotateX(180deg) rotateY(90deg) rotateZ(30deg); }
+  75%  { transform: translateY(-25px) rotateX(270deg) rotateY(135deg) rotateZ(20deg); }
+  100% { transform: translateY(0) rotateX(360deg) rotateY(180deg) rotateZ(45deg); }
+}
+
+.crystal svg { display: block; }
+
+/* Stars */
+.stars {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: white;
+  border-radius: 50%;
+  animation: twinkle ease-in-out infinite;
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 0.1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.5); }
+}
+
+/* ====== NAVBAR ====== */
+nav {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 200;
+  padding: 18px 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(7,8,15,0.6);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-logo {
+  font-family: 'DM Serif Display', serif;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--text);
+}
+.nav-logo span { color: var(--accent); }
+
+.nav-back {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 14px;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.nav-back:hover { color: var(--text); }
+
+/* ====== CARD CONTAINER ====== */
+.card-wrap {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+
+/* 3D card with tilt */
+.auth-card {
+  width: 100%;
+  max-width: 440px;
+  background: rgba(13,15,24,0.85);
+  border: 1px solid var(--border-bright);
+  border-radius: 28px;
+  padding: 44px 44px 40px;
+  position: relative;
+  backdrop-filter: blur(40px);
+  transform-style: preserve-3d;
+  transition: transform 0.15s ease;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.03),
+    0 30px 80px rgba(0,0,0,0.6),
+    0 0 60px rgba(124,106,247,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.07);
+  animation: cardIn 0.8s cubic-bezier(0.23,1,0.32,1) both;
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(40px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Shimmer border */
+.auth-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 28px;
+  background: linear-gradient(135deg, rgba(124,106,247,0.4), transparent 40%, rgba(92,230,181,0.2) 80%, transparent);
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+.auth-card:hover::before { opacity: 1; }
+
+/* Inner glow */
+.card-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 28px;
+  background: radial-gradient(ellipse at 50% 0%, rgba(124,106,247,0.12), transparent 60%);
+  pointer-events: none;
+}
+
+/* ====== FORM HEADER ====== */
+.form-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent), #a78bfa);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 24px rgba(124,106,247,0.4);
+  animation: iconPop 0.6s 0.3s cubic-bezier(0.23,1,0.32,1) both;
+}
+@keyframes iconPop {
+  from { opacity: 0; transform: scale(0.5); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.form-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 28px;
+  margin-bottom: 4px;
+  line-height: 1.1;
+}
+.form-title em { font-style: italic; color: var(--accent); }
+
+.form-sub {
+  color: var(--muted);
+  font-size: 14px;
+  margin-bottom: 32px;
+}
+
+/* ====== TABS ====== */
+.auth-tabs {
+  display: flex;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 28px;
+  gap: 4px;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 9px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+
+.tab-btn.active {
+  background: var(--accent);
+  color: white;
+  box-shadow: 0 4px 16px rgba(124,106,247,0.4);
+}
+
+/* ====== FIELDS ====== */
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.field-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.field-wrap {
+  position: relative;
+}
+
+.field-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.field-input {
+  width: 100%;
+  padding: 13px 16px 13px 44px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  outline: none;
+  transition: all 0.2s;
+}
+
+.field-input:focus {
+  border-color: var(--accent);
+  background: rgba(124,106,247,0.06);
+  box-shadow: 0 0 0 3px rgba(124,106,247,0.12);
+}
+
+.field-input::placeholder { color: var(--muted); }
+
+/* Avatar picker */
+.avatar-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.avatar-opt {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 2px solid var(--border);
+  background: var(--surface2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.avatar-opt:hover { border-color: var(--border-bright); transform: scale(1.1); }
+.avatar-opt.selected { border-color: var(--accent); background: rgba(124,106,247,0.15); transform: scale(1.1); box-shadow: 0 0 12px rgba(124,106,247,0.3); }
+
+.avatar-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+/* ====== SUBMIT BTN ====== */
+.submit-btn {
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(135deg, var(--accent), #a78bfa);
+  border: none;
+  border-radius: 14px;
+  color: white;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.25s;
+  position: relative;
+  overflow: hidden;
+  margin-top: 4px;
+  letter-spacing: 0.3px;
+}
+
+.submit-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.submit-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(124,106,247,0.45); }
+.submit-btn:hover::before { opacity: 1; }
+.submit-btn:active { transform: translateY(0); }
+
+/* Divider */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* Social */
+.social-row { display: flex; gap: 10px; }
+.social-btn {
+  flex: 1;
+  padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+.social-btn:hover { border-color: var(--border-bright); background: var(--surface2); }
+
+/* Error / success */
+.msg-box {
+  padding: 11px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 16px;
+  display: none;
+}
+.msg-box.error { display: block; background: rgba(247,106,106,0.1); border: 1px solid rgba(247,106,106,0.25); color: #f76a6a; }
+.msg-box.success { display: block; background: rgba(92,230,181,0.1); border: 1px solid rgba(92,230,181,0.25); color: var(--accent2); }
+
+/* Panel toggle */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ====== PARTICLES ====== */
+.particle {
+  position: fixed;
+  pointer-events: none;
+  border-radius: 50%;
+  animation: particleDrift linear infinite;
+}
+@keyframes particleDrift {
+  0%   { transform: translateY(100vh) scale(0); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(-100px) scale(1); opacity: 0; }
+}
+
+/* Mono tag */
+.mono { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--accent2); }
+
+@media (max-width: 500px) {
+  .auth-card { padding: 32px 24px; }
+  nav { padding: 14px 20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- 3D SCENE -->
+<div class="scene">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  <div class="grid-floor"></div>
+  <div class="stars" id="stars"></div>
+  <div class="crystal-wrap" id="crystals"></div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <a href="index.html" class="nav-logo">🧠 Mood<span>Observer</span></a>
+  <a href="index.html" class="nav-back">← Back to App</a>
+</nav>
+
+<!-- CARD -->
+<div class="card-wrap">
+  <div class="auth-card" id="authCard">
+    <div class="card-glow"></div>
+
+    <div class="form-icon">🧠</div>
+    <div class="form-title">Welcome to <em>MoodObserver</em></div>
+    <div class="form-sub">Your mental wellness companion — sign in or create your account.</div>
+
+    <div class="auth-tabs">
+      <button class="tab-btn active" onclick="switchTab('login')">Sign In</button>
+      <button class="tab-btn" onclick="switchTab('signup')">Create Account</button>
+    </div>
+
+    <div class="msg-box" id="msgBox"></div>
+
+    <!-- LOGIN PANEL -->
+    <div class="panel active" id="loginPanel">
+      <div class="field-group">
+        <div class="field-label">Username or Email</div>
+        <div class="field-wrap">
+          <span class="field-icon">👤</span>
+          <input class="field-input" id="l-user" placeholder="your_handle" autocomplete="username">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Password</div>
+        <div class="field-wrap">
+          <span class="field-icon">🔒</span>
+          <input class="field-input" id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password">
+        </div>
+      </div>
+      <button class="submit-btn" onclick="doLogin()">Sign In →</button>
+      <div class="divider">or continue with</div>
+      <div class="social-row">
+        <button class="social-btn" onclick="guestLogin()">
+          <span>🎭</span> Continue as Guest
+        </button>
+        <button class="social-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Google
+        </button>
+      </div>
+    </div>
+
+    <!-- SIGNUP PANEL -->
+    <div class="panel" id="signupPanel">
+      <div class="avatar-label">Choose your avatar</div>
+      <div class="avatar-row" id="avatarRow">
+        <div class="avatar-opt selected" data-av="🦋" onclick="pickAvatar(this)">🦋</div>
+        <div class="avatar-opt" data-av="🦊" onclick="pickAvatar(this)">🦊</div>
+        <div class="avatar-opt" data-av="🐺" onclick="pickAvatar(this)">🐺</div>
+        <div class="avatar-opt" data-av="🦁" onclick="pickAvatar(this)">🦁</div>
+        <div class="avatar-opt" data-av="🐉" onclick="pickAvatar(this)">🐉</div>
+        <div class="avatar-opt" data-av="🌙" onclick="pickAvatar(this)">🌙</div>
+        <div class="avatar-opt" data-av="⚡" onclick="pickAvatar(this)">⚡</div>
+        <div class="avatar-opt" data-av="🔮" onclick="pickAvatar(this)">🔮</div>
+      </div>
+
+      <div class="field-group">
+        <div class="field-label">Display Name</div>
+        <div class="field-wrap">
+          <span class="field-icon">✨</span>
+          <input class="field-input" id="s-name" placeholder="How others see you">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Username <span class="mono">@unique</span></div>
+        <div class="field-wrap">
+          <span class="field-icon">@</span>
+          <input class="field-input" id="s-user" placeholder="your_handle" oninput="checkUsername(this)">
+        </div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">Password</div>
+        <div class="field-wrap">
+          <span class="field-icon">🔒</span>
+          <input class="field-input" id="s-pass" type="password" placeholder="Min 6 characters">
+        </div>
+      </div>
+      <button class="submit-btn" onclick="doSignup()">Create Account →</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ===== STARS =====
+const starsEl = document.getElementById('stars')
+for (let i = 0; i < 120; i++) {
+  const s = document.createElement('div')
+  s.className = 'star'
+  s.style.cssText = `
+    left:${Math.random()*100}%;
+    top:${Math.random()*100}%;
+    animation-duration:${2 + Math.random()*4}s;
+    animation-delay:${Math.random()*4}s;
+    opacity:${0.1 + Math.random()*0.3};
+    width:${1 + Math.random()*2}px;
+    height:${1 + Math.random()*2}px;
+  `
+  starsEl.appendChild(s)
+}
+
+// ===== CRYSTALS =====
+const crystalContainer = document.getElementById('crystals')
+const crystalColors = ['#7c6af7','#5ce6b5','#f7a8d4','#f7c46a','#6ab4f7']
+for (let i = 0; i < 8; i++) {
+  const wrap = document.createElement('div')
+  wrap.className = 'crystal'
+  const size = 20 + Math.random() * 40
+  const color = crystalColors[Math.floor(Math.random() * crystalColors.length)]
+  wrap.style.cssText = `
+    left:${5 + Math.random()*90}%;
+    top:${5 + Math.random()*90}%;
+    animation-duration:${12 + Math.random()*10}s;
+    animation-delay:${-Math.random()*12}s;
+    opacity:${0.3 + Math.random()*0.4};
+  `
+  wrap.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 40 40">
+    <polygon points="20,2 38,12 38,28 20,38 2,28 2,12" fill="none" stroke="${color}" stroke-width="1.5" opacity="0.8"/>
+    <polygon points="20,8 32,14 32,26 20,32 8,26 8,14" fill="${color}" opacity="0.08"/>
+    <line x1="20" y1="2" x2="20" y2="38" stroke="${color}" stroke-width="0.5" opacity="0.3"/>
+    <line x1="2" y1="12" x2="38" y2="28" stroke="${color}" stroke-width="0.5" opacity="0.3"/>
+    <line x1="38" y1="12" x2="2" y2="28" stroke="${color}" stroke-width="0.5" opacity="0.3"/>
+  </svg>`
+  crystalContainer.appendChild(wrap)
+}
+
+// ===== 3D TILT =====
+const card = document.getElementById('authCard')
+document.addEventListener('mousemove', e => {
+  const rect = card.getBoundingClientRect()
+  const cx = rect.left + rect.width / 2
+  const cy = rect.top + rect.height / 2
+  const dx = (e.clientX - cx) / (window.innerWidth / 2)
+  const dy = (e.clientY - cy) / (window.innerHeight / 2)
+  card.style.transform = `rotateY(${dx * 6}deg) rotateX(${-dy * 5}deg) translateZ(20px)`
+})
+document.addEventListener('mouseleave', () => {
+  card.style.transform = 'rotateY(0) rotateX(0) translateZ(0)'
+})
+
+// ===== TABS =====
+let activeTab = 'login'
+function switchTab(tab) {
+  activeTab = tab
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', (i === 0 && tab === 'login') || (i === 1 && tab === 'signup'))
+  })
+  document.getElementById('loginPanel').classList.toggle('active', tab === 'login')
+  document.getElementById('signupPanel').classList.toggle('active', tab === 'signup')
+  clearMsg()
+}
+
+function showMsg(type, text) {
+  const el = document.getElementById('msgBox')
+  el.className = 'msg-box ' + type
+  el.textContent = text
+}
+function clearMsg() {
+  document.getElementById('msgBox').className = 'msg-box'
+}
+
+// ===== AVATAR =====
+let selectedAvatar = '🦋'
+function pickAvatar(el) {
+  document.querySelectorAll('.avatar-opt').forEach(a => a.classList.remove('selected'))
+  el.classList.add('selected')
+  selectedAvatar = el.dataset.av
+}
+
+// ===== USERNAME CHECK =====
+function checkUsername(input) {
+  input.value = input.value.toLowerCase().replace(/[^a-z0-9_]/g, '')
+}
+
+// ===== AUTH LOGIC =====
+function getUsers() { return JSON.parse(localStorage.getItem('mo_users') || '{}') }
+function saveUsers(u) { localStorage.setItem('mo_users', JSON.stringify(u)) }
+
+function doLogin() {
+  const user = document.getElementById('l-user').value.trim()
+  const pass = document.getElementById('l-pass').value
+  if (!user || !pass) return showMsg('error', '⚠️ Please fill in all fields.')
+
+  const users = getUsers()
+  const found = users[user.toLowerCase()] || Object.values(users).find(u => u.email === user)
+
+  if (!found) return showMsg('error', '⚠️ Account not found.')
+  if (found.password !== btoa(pass)) return showMsg('error', '⚠️ Incorrect password.')
+
+  localStorage.setItem('mo_session', JSON.stringify({ username: found.username, name: found.name, avatar: found.avatar }))
+  showMsg('success', `✅ Welcome back, ${found.name}! Redirecting...`)
+  setTimeout(() => window.location.href = 'index.html', 1200)
+}
+
+function doSignup() {
+  const name = document.getElementById('s-name').value.trim()
+  const user = document.getElementById('s-user').value.trim().toLowerCase()
+  const pass = document.getElementById('s-pass').value
+
+  if (!name || !user || !pass) return showMsg('error', '⚠️ Please fill in all fields.')
+  if (user.length < 3) return showMsg('error', '⚠️ Username must be at least 3 characters.')
+  if (pass.length < 6) return showMsg('error', '⚠️ Password must be at least 6 characters.')
+  if (!/^[a-z0-9_]+$/.test(user)) return showMsg('error', '⚠️ Username: letters, numbers, underscores only.')
+
+  const users = getUsers()
+  if (users[user]) return showMsg('error', '⚠️ Username already taken.')
+
+  users[user] = { username: user, name, password: btoa(pass), avatar: selectedAvatar, joinedAt: new Date().toISOString() }
+  saveUsers(users)
+
+  localStorage.setItem('mo_session', JSON.stringify({ username: user, name, avatar: selectedAvatar }))
+  showMsg('success', `🎉 Account created! Welcome, ${name}!`)
+  setTimeout(() => window.location.href = 'index.html', 1200)
+}
+
+function guestLogin() {
+  const guestId = 'guest_' + Math.random().toString(36).substr(2, 5)
+  localStorage.setItem('mo_session', JSON.stringify({ username: guestId, name: 'Guest', avatar: '🎭', isGuest: true }))
+  window.location.href = 'index.html'
+}
+</script>
+</body>
+</html>
